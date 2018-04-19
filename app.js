@@ -1,6 +1,9 @@
+//settings:
+const threashold = 1000000; // file over this size (in bytes) will be deleted.
+
 const readline = require('readline');
 const fs = require('fs');
-var path = '';
+var path, bigFiles, totalSize; // global variables are use since it's just a small app
 
 class File {
   constructor(path, name) {
@@ -11,7 +14,23 @@ class File {
     return this.path + '\\' + this.name;
   }
   get size() {
-    return Math.round(fs.statSync(this.fullname).size / 1024); // return file size in KB
+    return fs.statSync(this.fullname).size;
+  }
+  static toReadableSize(bytes) {
+    if (bytes > 1000000) {
+      return Math.round(bytes / 1000000) + 'MB';
+    } else if (bytes > 10000) {
+      return Math.round(bytes / 1000) + 'KB';
+    } else {
+      return Math.round(bytes / 1000, 1) + 'KB';
+    }
+  }
+  get readableSize() {
+    return File.toReadableSize(this.size);
+  }
+  get displayInfo() {
+    var space = 8 - this.readableSize.length;
+    return this.readableSize + ' '.repeat(space) + this.name;
   }
   isFolder() {
     return fs.statSync(this.fullname).isDirectory();
@@ -23,30 +42,50 @@ class File {
   }
 }
 
-settings().then(res => {
-  path = res;
-  var filenames = fs.readdirSync(path);
-  var files = filenames.map(filename => new File(path, filename));
-  for (let i of files) {
-    if (i.isFolder() || i.size < 100) continue;
-    i.delete();
-  }
+printHeader();
+const CLI = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
 });
 
-
-function settings() { //this function makes a prompt and returns a promise of the answer. Didn't use npm inquire because I want this to be a single file app.
-  const settings = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
+question('What directory do you want to phantom delete? Paste full path here: \n').then(answer => {
+    path = answer;
+    bigFiles = [];
+    var fileList = fs.readdirSync(path);
+    totalSize = 0;
+    for (let filename of fileList) {
+      let file = new File(path, filename);
+      let filesize = file.size;
+      console.log(file.displayInfo);
+      if (filesize < threashold) continue;
+      totalSize += filesize;
+      bigFiles.push(file);
+    }
+    console.log(`\n${fileList.length} files found, ${bigFiles.length} of which are big and will be phantom-deleted. \nThis will free up ${File.toReadableSize(totalSize)} disk space.`);
+    return question('To proceed, type "confirm" and hit return (cannot undo):');
+  }).then(answer => {
+    if (answer != 'confirm'.toLowerCase()) {
+      CLI.close();
+      process.exit();
+    }
+    for (let i of bigFiles) {
+        if (i.isFolder() || i.size < threashold) continue;
+        i.delete();
+      }
+    return question('aldfkajsdflasdfj');
+  }).then(res => {
+    console.log('res3: ', res);
+    console.log('Phantom-delete successfully done!');
+    CLI.close();
   });
 
-  return new Promise((resolve) => {
-    settings.question('What directory do you want to phantom delete? Paste full path here: \n', (answer) => {
+
+function question(question) {
+  return new Promise(resolve => {
+    CLI.question(question, answer => {
       resolve(answer);
-      settings.close();
     });
   });
-
 }
 
 
