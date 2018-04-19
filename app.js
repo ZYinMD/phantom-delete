@@ -1,5 +1,6 @@
+const readline = require('readline');
 const fs = require('fs');
-var path = process.argv[2];
+var path = '';
 
 class File {
   constructor(path, name) {
@@ -20,15 +21,32 @@ class File {
       if (err) throw err;
     });
   }
-
 }
 
-var filenames = fs.readdirSync(path);
-var files = filenames.map(filename => new File(path, filename));
+settings().then(res => {
+  path = res;
+  var filenames = fs.readdirSync(path);
+  var files = filenames.map(filename => new File(path, filename));
+  for (let i of files) {
+    if (i.isFolder() || i.size < 100) continue;
+    i.delete();
+  }
+});
 
-for (let i of files) {
-  if (i.isFolder() || i.size < 100) continue;
-  i.delete();
+
+function settings() { //this function makes a prompt and returns a promise of the answer. Didn't use npm inquire because I want this to be a single file app.
+  const settings = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+  return new Promise((resolve) => {
+    settings.question('What directory do you want to phantom delete? Paste full path here: \n', (answer) => {
+      resolve(answer);
+      settings.close();
+    });
+  });
+
 }
 
 
