@@ -3,7 +3,7 @@ const threashold = 1000000; // file over this size (in bytes) will be deleted.
 
 const readline = require('readline');
 const fs = require('fs');
-var path, bigFiles, totalSize; // global variables are use since it's just a small app
+var path, bigFiles, totalSize; // global variables are used since it's just a small app
 
 class File {
   constructor(path, name) {
@@ -48,7 +48,7 @@ const CLI = readline.createInterface({
   output: process.stdout
 });
 
-question('What directory do you want to phantom delete? Paste full path here: \n').then(answer => {
+question('Which directory do you want to perform phantom-delete on? Paste full path here: \n').then(answer => {
     path = answer;
     bigFiles = [];
     var fileList = fs.readdirSync(path);
@@ -56,27 +56,33 @@ question('What directory do you want to phantom delete? Paste full path here: \n
     for (let filename of fileList) {
       let file = new File(path, filename);
       let filesize = file.size;
-      console.log(file.displayInfo);
       if (filesize < threashold) continue;
       totalSize += filesize;
       bigFiles.push(file);
     }
-    console.log(`\n${fileList.length} files found, ${bigFiles.length} of which are big and will be phantom-deleted. \nThis will free up ${File.toReadableSize(totalSize)} disk space.`);
-    return question('To proceed, type "confirm" and hit return (cannot undo):');
+    console.log(`\n- ${fileList.length} files found, ${bigFiles.length} of which are big and will be phantom-deleted. \n- This can free up ${File.toReadableSize(totalSize)} disk space.`);
+    return question(`\n- Would you like to see a list of them? (y / n):`);
   }).then(answer => {
-    if (answer != 'confirm'.toLowerCase()) {
-      CLI.close();
+    if (answer.toLowerCase().trim() == 'y') {
+      console.log('\n');
+      bigFiles.forEach((file, index) => {
+        console.log(`  #${String(index + 1).padStart(2,'0')}    ${file.displayInfo}`);
+      });
+    }
+    return question('\n- Type "confirm" to proceed (cannot undo):');
+  }).then(answer => {
+    if (answer.toLowerCase().trim() != 'confirm') {
+      console.log('\n Mission Canceled');
       process.exit();
     }
     for (let i of bigFiles) {
         if (i.isFolder() || i.size < threashold) continue;
         i.delete();
       }
-    return question('aldfkajsdflasdfj');
-  }).then(res => {
-    console.log('res3: ', res);
-    console.log('Phantom-delete successfully done!');
+    console.log(bigFiles.length + 'files phantom-deleted.');
     CLI.close();
+  }).catch(error => {
+    throw error;
   });
 
 
