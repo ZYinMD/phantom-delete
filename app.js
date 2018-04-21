@@ -1,17 +1,17 @@
 //settings:
 const threashold = 1000000; // file over this size (in bytes) will be deleted.
-
 const readline = require('readline');
 const fs = require('fs');
-var path, bigFiles, totalSize; // global variables are used since it's just a small app
+const path = require('path');
+var dir, bigFiles, totalSize; // global variables are used since it's just a small app
 
 class File {
-  constructor(path, name) {
-    this.path = path;
+  constructor(dir, name) {
+    this.dir = dir;
     this.name = name;
   }
   get fullname() {
-    return this.path + '\\' + this.name;
+    return this.dir + '\\' + this.name;
   }
   get size() {
     return fs.statSync(this.fullname).size;
@@ -49,19 +49,19 @@ const CLI = readline.createInterface({
 });
 
 question('Which directory do you want to perform phantom-delete on? Paste full path here: \n').then(answer => {
-    path = answer;
+    dir = answer;
     bigFiles = [];
-    var fileList = fs.readdirSync(path);
+    var fileList = fs.readdirSync(dir);
     totalSize = 0;
     for (let filename of fileList) {
-      let file = new File(path, filename);
+      let file = new File(dir, filename);
       let filesize = file.size;
       if (filesize < threashold) continue;
       totalSize += filesize;
       bigFiles.push(file);
     }
     console.log(`\n- ${fileList.length} files found, ${bigFiles.length} of which are big and will be phantom-deleted. \n- This can free up ${File.toReadableSize(totalSize)} disk space.`);
-    return question(`\n- Would you like to see a list of them? (y / n):`);
+    return question(`\n- (default = n) Would you like to see a list of them? (y / n):`);
   }).then(answer => {
     if (answer.toLowerCase().trim() == 'y') {
       console.log('\n');
@@ -79,10 +79,19 @@ question('Which directory do you want to perform phantom-delete on? Paste full p
         if (i.isFolder() || i.size < threashold) continue;
         i.delete();
       }
-    console.log(bigFiles.length + 'files phantom-deleted.');
+    console.log(`\n- ${bigFiles.length} files phantom-deleted.`);
+    return question(`\n- (default = y) Prefix your folder name with a "╳"? (y / n):`);
+  }).then(answer => {
+      if (answer.toLowerCase().trim() != 'n') {
+        let newBasename = '⨯' + path.basename(dir);
+        fs.renameSync(dir, path.join(path.dirname(dir), newBasename));
+      }
     CLI.close();
   }).catch(error => {
-    throw error;
+    if (error.message.startsWith('EPERM: operation not permitted, rename')) {
+      console.log('\nPhantom-delete successful, but failed to prefix your folder with a ╳');
+    } else console.log(error.message);
+    process.exit();
   });
 
 
