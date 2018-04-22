@@ -2,7 +2,7 @@
 const threashold = 1000000; // file over this size (in bytes) will be deleted.
 // ↑settings:
 
-const readline = require('readline');
+const readline = require('readline'); // the native package that does prompts
 const fs = require('fs');
 const path = require('path');
 var File, BigFileList, CLI; // global variables are used since it's just a small app
@@ -13,7 +13,7 @@ run();
 async function run() {
   try {
     var dir = await question('Which directory do you want to perform phantom-delete on? Paste full path here: \n');
-    var bigFiles = new BigFileList([]);
+    var bigFiles = new BigFileList([]); // the object that stores the to-be-deleted files
     var fileList = fs.readdirSync(dir);
     for (let filename of fileList) {
       let file = new File(dir, filename);
@@ -36,7 +36,7 @@ async function run() {
 
     var wantPrefix = await question(`\n- (default = y) Prefix your folder name with a "╳"? (y / n):`);
     if (wantPrefix.toLowerCase().trim() != 'n') {
-      let newBasename = '⨯' + path.basename(dir);
+      let newBasename = '⨯' + path.basename(dir); // ⨯ is the real char used, but it seems not to show well in some terminals. ╳ shows better.
       fs.renameSync(dir, path.join(path.dirname(dir), newBasename));
       console.log(`\n- Your folder name has been changed to "${'╳' + newBasename.slice(1, newBasename.length)}"`);
     }
@@ -134,7 +134,7 @@ function init() {
 
   printHeader();
 
-  CLI = readline.createInterface({
+  CLI = readline.createInterface({ // this part is copied from node docs, I don't really understand it.
     input: process.stdin,
     output: process.stdout
   });
