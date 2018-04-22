@@ -1,48 +1,55 @@
 // ↓settings:
 const threashold = 1000000; // file over this size (in bytes) will be deleted.
 // ↑settings:
+
 const readline = require('readline');
 const fs = require('fs');
 const path = require('path');
-var dir, bigFiles, File, BigFileList, CLI; // global variables are used since it's just a small app
-init();
+var File, BigFileList, CLI; // global variables are used since it's just a small app
 
-question('Which directory do you want to perform phantom-delete on? Paste full path here: \n').then(answer => {
-  dir = answer;
-  bigFiles = new BigFileList([]);
-  var fileList = fs.readdirSync(dir);
-  for (let filename of fileList) {
-    let file = new File(dir, filename);
-    if (file.size < threashold || file.isFolder()) continue;
-    bigFiles.fileList.push(file);
+init();
+run();
+
+async function run() {
+  try {
+    var dir = await question('Which directory do you want to perform phantom-delete on? Paste full path here: \n');
+    var bigFiles = new BigFileList([]);
+    var fileList = fs.readdirSync(dir);
+    for (let filename of fileList) {
+      let file = new File(dir, filename);
+      if (file.size < threashold || file.isFolder()) continue;
+      bigFiles.fileList.push(file);
+    }
+    console.log(`\n- ${fileList.length} files found, ${bigFiles.length} of which are big and will be phantom-deleted. \n- This can free up ${File.toReadableSize(bigFiles.totalSize)} disk space.`);
+
+    var wantSeeFiles = await question(`\n- (default = n) Would you like to see a list of them? (y / n):`);
+    if (wantSeeFiles.toLowerCase().trim() == 'y') {
+      bigFiles.showFiles();
+    }
+
+    var confirm = await question('\n- Type "confirm" to proceed (cannot undo):');
+    if (confirm.toLowerCase().trim() != 'confirm') {
+      console.log('\n  Mission Canceled');
+      process.exit();
+    }
+    bigFiles.deleteAll();
+
+    var wantPrefix = await question(`\n- (default = y) Prefix your folder name with a "╳"? (y / n):`);
+    if (wantPrefix.toLowerCase().trim() != 'n') {
+      let newBasename = '⨯' + path.basename(dir);
+      fs.renameSync(dir, path.join(path.dirname(dir), newBasename));
+      console.log(`\n- Your folder name has been changed to "${'╳' + newBasename.slice(1, newBasename.length)}"`);
+    }
+    CLI.close();
   }
-  console.log(`\n- ${fileList.length} files found, ${bigFiles.length} of which are big and will be phantom-deleted. \n- This can free up ${File.toReadableSize(bigFiles.totalSize)} disk space.`);
-  return question(`\n- (default = n) Would you like to see a list of them? (y / n):`);
-}).then(answer => {
-  if (answer.toLowerCase().trim() == 'y') {
-    bigFiles.showFiles();
-  }
-  return question('\n- Type "confirm" to proceed (cannot undo):');
-}).then(answer => {
-  if (answer.toLowerCase().trim() != 'confirm') {
-    console.log('\n  Mission Canceled');
+
+  catch (error) {
+    if (error.message.startsWith('EPERM: operation not permitted, rename')) {
+      console.log('\nPhantom-delete successful, but failed to prefix your folder with a "╳"');
+    } else console.log(error);
     process.exit();
   }
-  bigFiles.deleteAll();
-  return question(`\n- (default = y) Prefix your folder name with a "╳"? (y / n):`);
-}).then(answer => {
-  if (answer.toLowerCase().trim() != 'n') {
-    let newBasename = '⨯' + path.basename(dir);
-    fs.renameSync(dir, path.join(path.dirname(dir), newBasename));
-    console.log(`\n- Your folder name has been changed to "${'╳' + newBasename.slice(1, newBasename.length)}"`)
-  }
-  CLI.close();
-}).catch(error => {
-  if (error.message.startsWith('EPERM: operation not permitted, rename')) {
-    console.log('\nPhantom-delete successful, but failed to prefix your folder with a "╳"');
-  } else console.log(error);
-  process.exit();
-});
+}
 
 function question(question) {
   return new Promise(resolve => {
@@ -99,6 +106,7 @@ function init() {
       });
     }
   };
+
   BigFileList = class {
     constructor(fileList) {
       this.fileList = fileList;
@@ -123,7 +131,9 @@ function init() {
       console.log(`\n- ${this.length} files phantom-deleted.`);
     }
   };
+
   printHeader();
+
   CLI = readline.createInterface({
     input: process.stdin,
     output: process.stdout
