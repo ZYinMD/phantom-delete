@@ -13,6 +13,8 @@ run();
 async function run() {
   try {
     var dir = await question('Which directory do you want to perform phantom-delete on? Paste full path here: \n');
+    if (dir[0] == "'" && dir.slice(-1) == "'") // when there's space in the path, some terminal auto add quote around it when user pastes in the path, resulting in strings with redundant quotes
+      dir = dir.slice(1, -1);
     var bigFiles = new BigFileList([]); // the object that stores the to-be-deleted files
     var fileList = fs.readdirSync(dir);
     for (let filename of fileList) {
@@ -23,9 +25,8 @@ async function run() {
     console.log(`\n- ${fileList.length} files found, ${bigFiles.length} of which are big and will be phantom-deleted. \n- This can free up ${File.toReadableSize(bigFiles.totalSize)} disk space.`);
 
     var wantSeeFiles = await question(`\n- (default = n) Would you like to see a list of them? (y / n):`);
-    if (wantSeeFiles.toLowerCase().trim() == 'y') {
+    if (wantSeeFiles.toLowerCase().trim() == 'y')
       bigFiles.showFiles();
-    }
 
     var confirm = await question('\n- Type "confirm" to proceed (cannot undo):');
     if (confirm.toLowerCase().trim() != 'confirm') {
@@ -36,7 +37,7 @@ async function run() {
 
     var wantPrefix = await question(`\n- (default = y) Prefix your folder name with a "╳"? (y / n):`);
     if (wantPrefix.toLowerCase().trim() != 'n') {
-      let newBasename = '⨯' + path.basename(dir); // ⨯ is the real char used, but it seems not to show well in some terminals. ╳ shows better.
+      let newBasename = '⨯' + path.basename(dir); // ⨯ is the real char used, but it doesn't show well in some terminals. ╳ shows better.
       fs.renameSync(dir, path.join(path.dirname(dir), newBasename));
       console.log(`\n- Your folder name has been changed to "${'╳' + newBasename.slice(1, newBasename.length)}"`);
     }
@@ -44,9 +45,10 @@ async function run() {
   }
 
   catch (error) {
-    if (error.message.startsWith('EPERM: operation not permitted, rename')) {
+    if (error.message.startsWith('EPERM') || error.message.startsWith('EACCES'))
       console.log('\nPhantom-delete successful, but failed to prefix your folder with a "╳"');
-    } else console.log('\n', error);
+    else
+      console.log('\n', error);
     process.exit();
   }
 }
@@ -82,13 +84,12 @@ function init() {
       return fs.statSync(this.fullname).size;
     }
     static toReadableSize(bytes) {
-      if (bytes > 1000000) {
+      if (bytes > 1000000)
         return Math.round(bytes / 1000000) + 'MB';
-      } else if (bytes > 10000) {
+      else if (bytes > 10000)
         return Math.round(bytes / 1000) + 'KB';
-      } else {
+      else
         return Math.round(bytes / 1000, 1) + 'KB';
-      }
     }
     get readableSize() {
       return File.toReadableSize(this.size);
