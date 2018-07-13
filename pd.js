@@ -46,7 +46,7 @@ async function run() {
   catch (error) {
     if (error.message.startsWith('EPERM: operation not permitted, rename')) {
       console.log('\nPhantom-delete successful, but failed to prefix your folder with a "╳"');
-    } else console.log(error);
+    } else console.log('\n', error);
     process.exit();
   }
 }
@@ -76,7 +76,7 @@ function init() {
       this.name = name;
     }
     get fullname() {
-      return this.dir + '\\' + this.name;
+      return path.join(this.dir, this.name);
     }
     get size() {
       return fs.statSync(this.fullname).size;
