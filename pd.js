@@ -84,20 +84,22 @@ function init() {
     get size() {
       return fs.statSync(this.fullname).size;
     }
-    static toReadableSize(bytes) {
-      if (bytes > 1000000)
-        return Math.round(bytes / 1000000) + 'MB';
-      else if (bytes > 10000)
-        return Math.round(bytes / 1000) + 'KB';
-      else
-        return Math.round(bytes / 1000, 1) + 'KB';
+    static toReadableSize(bytes) { // convert file size in bytes to human readable format
+      if (bytes < 1000)
+        return bytes + 'B'; // separate it out because integers don't have .toFixed()
+      for (let i of ['KB', 'MB', 'GB', 'TB']) {
+        bytes /= 1000;
+        if (bytes < 1000)
+          return bytes.toFixed(1) + i;
+      }
+      return bytes.toFixed(1) + 'TB';
     }
     get readableSize() {
       return File.toReadableSize(this.size);
     }
     get displayInfo() {
-      var space = 8 - this.readableSize.length;
-      return this.readableSize + ' '.repeat(space) + this.name;
+      var space = 6 - this.readableSize.length;
+      return ' '.repeat(space) + this.readableSize + '  '+ this.name ;
     }
     isFolder() {
       return fs.statSync(this.fullname).isDirectory();
