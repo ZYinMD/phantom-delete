@@ -5,16 +5,82 @@ const threashold = 1000000; // file over this size (in bytes) will be deleted.
 const readline = require('readline'); // the native package that does prompts
 const fs = require('fs');
 const path = require('path');
-var File, BigFileList, CLI; // global variables are used since it's just a small app
 
-init();
+printHeader();
+
+class File { // a case of File is an actual file, to construct, pass in its path and its name
+  constructor(dir, name) {
+    this.dir = dir;
+    this.name = name;
+  }
+  get fullname() {
+    return path.join(this.dir, this.name);
+  }
+  get size() {
+    return fs.statSync(this.fullname).size;
+  }
+  static toReadableSize(bytes) { // convert file size in bytes to human readable format
+    if (bytes < 1000)
+      return bytes + 'B'; // separate it out because integers don't have .toFixed()
+    for (let i of ['KB', 'MB', 'GB', 'TB']) {
+      bytes /= 1000;
+      if (bytes < 1000)
+        return bytes.toFixed(1) + i;
+    }
+    return bytes.toFixed(1) + 'TB';
+  }
+  get readableSize() {
+    return File.toReadableSize(this.size);
+  }
+  get displayInfo() {
+    var space = 7 - this.readableSize.length;
+    return ' '.repeat(space) + this.readableSize + '  '+ this.name ;
+  }
+  isFolder() {
+    return fs.statSync(this.fullname).isDirectory();
+  }
+  delete() {
+    fs.writeFile(this.fullname, '', (err) => {
+      if (err) throw err;
+    });
+  }
+}
+
+class BigFileList { // a case of BigFileList is an array of big files (bigger than the threshold to be deleted), to construct, pass in array of Files
+  constructor(fileList) {
+    this.fileList = fileList;
+  }
+  get length() {
+    return this.fileList.length;
+  }
+  get totalSize() {
+    return this.fileList.reduce((accumulator, item) => accumulator + item.size, 0);
+  }
+  showFiles() {
+    console.log('');
+    this.fileList.forEach((file, index) => {
+      console.log(`  #${String(index + 1).padStart(2,'0')} ${file.displayInfo}`);
+    });
+  }
+  deleteAll() {
+    for (let i of this.fileList)
+      i.delete();
+    console.log(`\n- ${this.length} files phantom-deleted.`);
+  }
+}
+
+var CLI = readline.createInterface({ // got this part from node docs - readline
+    input: process.stdin,
+    output: process.stdout
+  });
+
 run();
 
 async function run() {
   try {
     var dir = await question('Which folder do you want to perform phantom-delete on? Drag the folder into here:\n');
-    dir = dir.trim(); // sometime dragging in the folder creates a space in the end
-    if (dir[0] == dir.slice(-1) && (dir[0] == "'" || dir[0] == '"')) // when there's space in the path, some terminal auto add quote around it when user pastes in the path, resulting in strings with redundant quotes
+    dir = dir.trim(); // in some terminals, dragging creates space in the end
+    if (dir[0] == dir.slice(-1) && (dir[0] == "'" || dir[0] == '"')) // when there's space in the path, some terminals auto add quotes, resulting in strings with redundant quotes
       dir = dir.slice(1, -1);
     var bigFiles = new BigFileList([]); // the object that stores the to-be-deleted files
     var fileList = fs.readdirSync(dir);
@@ -25,7 +91,7 @@ async function run() {
     }
     console.log(`\n- ${fileList.length} files found, ${bigFiles.length} of which are big and will be phantom-deleted. \n- This can free up ${File.toReadableSize(bigFiles.totalSize)} disk space.`);
 
-    var wantSeeFiles = await question(`\n- (default = n) Would you like to see a list of them? (y / n):`);
+    var wantSeeFiles = await question(`\n- (default = n) Would you like to view the list of them? (y / n):`);
     if (wantSeeFiles.toLowerCase().trim() == 'y')
       bigFiles.showFiles();
 
@@ -48,8 +114,12 @@ async function run() {
   catch (error) {
     if (error.message.startsWith('EPERM') || error.message.startsWith('EACCES'))
       console.log('\nPhantom-delete successful, but failed to prefix your folder with a "╳"');
-    else
-      console.log('\n', error);
+    else if (error.message.startsWith('ENOENT'))
+      console.log('\nUnrecognized Path. Are you using WSL? If yes, try cmd, or Git Bash, or Powershell, they all work.');
+    else {
+      console.log('');
+      throw error;
+    }
     process.exit();
   }
 }
@@ -70,76 +140,4 @@ function printHeader() {
   |__|  |_|_|__,|_|_|_| |___|_|_|_|  |____/|___|_|___|_| |___|
 
   `);
-}
-
-function init() {
-  File = class {
-    constructor(dir, name) {
-      this.dir = dir;
-      this.name = name;
-    }
-    get fullname() {
-      return path.join(this.dir, this.name);
-    }
-    get size() {
-      return fs.statSync(this.fullname).size;
-    }
-    static toReadableSize(bytes) { // convert file size in bytes to human readable format
-      if (bytes < 1000)
-        return bytes + 'B'; // separate it out because integers don't have .toFixed()
-      for (let i of ['KB', 'MB', 'GB', 'TB']) {
-        bytes /= 1000;
-        if (bytes < 1000)
-          return bytes.toFixed(1) + i;
-      }
-      return bytes.toFixed(1) + 'TB';
-    }
-    get readableSize() {
-      return File.toReadableSize(this.size);
-    }
-    get displayInfo() {
-      var space = 6 - this.readableSize.length;
-      return ' '.repeat(space) + this.readableSize + '  '+ this.name ;
-    }
-    isFolder() {
-      return fs.statSync(this.fullname).isDirectory();
-    }
-    delete() {
-      fs.writeFile(this.fullname, '', (err) => {
-        if (err) throw err;
-      });
-    }
-  };
-
-  BigFileList = class {
-    constructor(fileList) {
-      this.fileList = fileList;
-    }
-    get length() {
-      return this.fileList.length;
-    }
-    get totalSize() {
-      console.log('inside totalSize');
-      return this.fileList.reduce((accumulator, item) => accumulator + item.size, 0);
-    }
-    showFiles() {
-      console.log('');
-      this.fileList.forEach((file, index) => {
-        console.log(`  #${String(index + 1).padStart(2,'0')}   ${file.displayInfo}`);
-      });
-    }
-    deleteAll() {
-      for (let i of this.fileList) {
-        i.delete();
-      }
-      console.log(`\n- ${this.length} files phantom-deleted.`);
-    }
-  };
-
-  printHeader();
-
-  CLI = readline.createInterface({ // this part is copied from node docs, I don't really understand it.
-    input: process.stdin,
-    output: process.stdout
-  });
 }
