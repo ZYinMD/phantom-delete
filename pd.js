@@ -12,8 +12,9 @@ run();
 
 async function run() {
   try {
-    var dir = await question('Which directory do you want to perform phantom-delete on? Paste full path here: \n');
-    if (dir[0] == "'" && dir.slice(-1) == "'") // when there's space in the path, some terminal auto add quote around it when user pastes in the path, resulting in strings with redundant quotes
+    var dir = await question('Which folder do you want to perform phantom-delete on? Drag the folder into here:\n');
+    dir = dir.trim(); // sometime dragging in the folder creates a space in the end
+    if (dir[0] == dir.slice(-1) && (dir[0] == "'" || dir[0] == '"')) // when there's space in the path, some terminal auto add quote around it when user pastes in the path, resulting in strings with redundant quotes
       dir = dir.slice(1, -1);
     var bigFiles = new BigFileList([]); // the object that stores the to-be-deleted files
     var fileList = fs.readdirSync(dir);
@@ -135,7 +136,7 @@ function init() {
 
   printHeader();
 
-  CLI = readline.createInterface({ // this part is copied from node docs, I don't really understand it.
+  CLI = readline.createInterface({ // this part is copied from node docs, I don't really understand it.
     input: process.stdin,
     output: process.stdout
   });
