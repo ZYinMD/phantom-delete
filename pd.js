@@ -133,13 +133,13 @@ async function run() {
     }
     bigFiles.deleteAll();
 
-    var prefixFiles = await question(`\n- (default = y) Prefix phantom file names with a "╳"? (y / n):`);
+    var prefixFiles = await question(`\n- (default = y) Prefix phantom file names with a ╳? (y / n):`);
     if (prefixFiles.toLowerCase().trim() != 'n') {
       bigFiles.prefixAll();
       console.log(`\n  ...phantom file names changed.`);
     }
 
-    var prefixFolders = await question(`\n- (default = n) Prefix your folder name(s) with a "╳"?)(y / n):`);
+    var prefixFolders = await question(`\n- (default = n) Prefix your folder name(s) with a ╳?)(y / n):`);
     if (prefixFolders.toLowerCase().trim() == 'y') {
       folders.reverse(); // rename the deepest folders first
       folders.push(new File(path.dirname(DIR), path.basename(DIR))); //DIR last
