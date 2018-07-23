@@ -139,7 +139,7 @@ async function run() {
       console.log(`\n  ...phantom file names changed.`);
     }
 
-    var prefixFolders = await question(`\n- (default = n) Prefix your folder name(s) with a "╳"? (y / n):`);
+    var prefixFolders = await question(`\n- (default = n) Prefix your folder name(s) with a "╳"?)(y / n):`);
     if (prefixFolders.toLowerCase().trim() == 'y') {
       folders.reverse(); // rename the deepest folders first
       folders.push(new File(path.dirname(DIR), path.basename(DIR))); //DIR last
@@ -152,7 +152,7 @@ async function run() {
 
   catch (error) {
     if (error.message.startsWith('EPERM') || error.message.startsWith('EACCES'))
-      console.log("\nError occured:\nPhantom-delete was successful, but failed in prefixing a certain file or folder with ╳. Maybe it's in use. Here's the error message: \n\n", error);
+      console.log("\nError occured:\nPhantom-delete was successful, but failed in prefixing a certain folder with ╳. Maybe it's open in the file explorer. Here's the error message: \n\n", error);
     else if (error.message.startsWith('ENOENT'))
       console.log('\nUnrecognized Path. Are you using WSL? If yes, try cmd, or Git Bash, or Powershell, they all work.');
     else {
@@ -161,9 +161,7 @@ async function run() {
     }
     process.exit();
   }
-
 }
-
 
 function question(question) {
   return new Promise(resolve => {
