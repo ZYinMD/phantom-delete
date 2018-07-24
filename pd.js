@@ -100,8 +100,10 @@ async function run() {
           scanDir(file.fullname);
         } else continue;
       }
-      else if (file.size < threashold) continue;
-      else bigFiles.push(file);
+      else if (file.size < threashold)
+        smallFiles++;
+      else
+        bigFiles.push(file);
     }
   }
 
@@ -115,17 +117,18 @@ async function run() {
 
     var bigFiles = []; // to store an array of files bigger than threshold.
     var folders = []; // to store an array of folders and sub-folders found
+    var smallFiles = 0; // a counter to tally small files
 
     scanDir(DIR);
 
     bigFiles = new ToBeDeleted(bigFiles);
-    console.log(`\n  ...Found ${bigFiles.length} files bigger than 1MB.\n\n- Phantom-delete them will free up ${File.toReadableSize(bigFiles.totalSize)} disk space.`);
+    console.log(`\n  ...${bigFiles.length + smallFiles} files found, ${bigFiles.length} of which are bigger than 1MB.\n\n- Phantom-delete them will free up ${File.toReadableSize(bigFiles.totalSize)} disk space.`);
 
     var viewBeforeDelete = await question(`\n- (default = n) Would you like to view a list of them? (y / n):`);
     if (viewBeforeDelete.toLowerCase().trim() == 'y')
       bigFiles.showFiles();
 
-    var confirm = await question('\n- Type "confirm" to proceed (cannot undo):');
+    var confirm = await question('\n- Type "confirm" to perform phantom-delete (cannot undo):');
     if (confirm.toLowerCase().trim() != 'confirm') {
       console.log('\n  Mission Canceled');
       process.exit();
