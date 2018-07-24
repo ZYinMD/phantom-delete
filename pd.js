@@ -107,10 +107,9 @@ async function run() {
 
   try {
     DIR = await question('Which folder do you want to perform phantom-delete on? Drag the folder into here:\n');
-    DIR = DIR.trim(); // in some terminals, dragging creates space in the end
+    DIR = DIR.trim().replace(/\\ /g, ' '); // in some terminals, dragging creates space in the end, or creates \ to escape spaces, or use \ as opposed to /
     if (DIR[0] == DIR.slice(-1) && (DIR[0] == "'" || DIR[0] == '"')) // when there's space in the path, some terminals auto add quotes, resulting in strings with redundant quotes
       DIR = DIR.slice(1, -1);
-
     var recursive = await question(`\n- (default = n) Include sub-folders? (y / n):`);
     recursive = recursive.toLowerCase().trim();
 
