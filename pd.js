@@ -112,7 +112,7 @@ async function run() {
     DIR = DIR.trim().replace(/\\ /g, ' '); // in some terminals, dragging creates space in the end, or creates \ to escape spaces, or use \ as opposed to /
     if (DIR[0] == DIR.slice(-1) && (DIR[0] == "'" || DIR[0] == '"')) // when there's space in the path, some terminals auto add quotes, resulting in strings with redundant quotes
       DIR = DIR.slice(1, -1);
-    var recursive = await question(`\n- (default = n) Include sub-folders? (y / n):`);
+    var recursive = await question(`\n- Include sub-folders? (y / N):`);
     recursive = recursive.toLowerCase().trim();
 
     var bigFiles = []; // to store an array of files bigger than threshold.
@@ -124,7 +124,7 @@ async function run() {
     bigFiles = new ToBeDeleted(bigFiles);
     console.log(`\n  ...${bigFiles.length + smallFiles} files found, ${bigFiles.length} of which are bigger than 1MB.\n\n- Phantom-delete them will free up ${File.toReadableSize(bigFiles.totalSize)} disk space.`);
 
-    var viewBeforeDelete = await question(`\n- (default = n) Would you like to view a list of them? (y / n):`);
+    var viewBeforeDelete = await question(`\n- Would you like to view a list of them? (y / N):`);
     if (viewBeforeDelete.toLowerCase().trim() == 'y')
       bigFiles.showFiles();
 
@@ -135,13 +135,13 @@ async function run() {
     }
     bigFiles.deleteAll();
 
-    var prefixFiles = await question(`\n- (default = y) Prefix phantom file names with a ╳? (y / n):`);
+    var prefixFiles = await question(`\n- Prefix phantom file names with a ╳? (Y / n):`);
     if (prefixFiles.toLowerCase().trim() != 'n') {
       bigFiles.prefixAll();
       console.log(`\n  ...phantom file names changed.`);
     }
 
-    var prefixFolders = await question(`\n- (default = n) Prefix your folder name(s) with a ╳?)(y / n):`);
+    var prefixFolders = await question(`\n- Prefix your folder name(s) with a ╳?)(y / N):`);
     if (prefixFolders.toLowerCase().trim() == 'y') {
       folders.reverse(); // rename the deepest folders first
       folders.push(new File(path.dirname(DIR), path.basename(DIR))); //DIR last
